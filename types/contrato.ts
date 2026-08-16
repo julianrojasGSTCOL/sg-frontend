@@ -59,3 +59,11 @@ export type BuscarContratosResultado = {
   offset: number;
   resultados: ContratoResumen[];
 };
+
+export type RolMensajeChat = "ciudadano" | "asistente";
+
+export type MensajeChat = {
+  rol: RolMensajeChat;
+  mensaje: string;
+  creadoEn: string;
+};

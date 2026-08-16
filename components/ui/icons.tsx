@@ -71,6 +71,20 @@ export function IconChartBar({ className = base }: IconProps) {
   );
 }
 
+export function IconSpinner({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={`animate-spin ${className}`} aria-hidden>
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth={2.2} strokeOpacity={0.25} />
+      <path
+        d="M21 12a9 9 0 0 0-9-9"
+        stroke="currentColor"
+        strokeWidth={2.2}
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export function IconScale({ className = base }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className={className} aria-hidden>

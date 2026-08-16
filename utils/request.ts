@@ -19,6 +19,45 @@ type NestErrorBody = {
   error?: string;
 };
 
+type OpcionesCookie = {
+  maxAge?: number;
+  path?: string;
+  sameSite?: "lax" | "strict" | "none";
+  secure?: boolean;
+  httpOnly?: boolean;
+};
+
+function parsearSetCookie(setCookie: string) {
+  const [par, ...atributos] = setCookie.split(";").map((s) => s.trim());
+  const idxIgual = par.indexOf("=");
+  const name = par.slice(0, idxIgual);
+  const value = par.slice(idxIgual + 1);
+  const options: OpcionesCookie = {};
+
+  for (const atributo of atributos) {
+    const [claveRaw, valorRaw] = atributo.split("=");
+    switch (claveRaw.trim().toLowerCase()) {
+      case "max-age":
+        options.maxAge = Number(valorRaw);
+        break;
+      case "path":
+        options.path = valorRaw;
+        break;
+      case "samesite":
+        options.sameSite = valorRaw?.toLowerCase() as OpcionesCookie["sameSite"];
+        break;
+      case "secure":
+        options.secure = true;
+        break;
+      case "httponly":
+        options.httpOnly = true;
+        break;
+    }
+  }
+
+  return { name, value, options };
+}
+
 export default async function request<T>(url: string, options: requestOptions) {
   const {
     method,
@@ -40,6 +79,7 @@ export default async function request<T>(url: string, options: requestOptions) {
   if (contentType) {
     headers["Content-Type"] = contentType;
   }
+  headers["Authorization"] = `Bearer ${process.env.BACKEND_API_KEY}`;
   if (token) {
     headers["Authorization"] = `Bearer ${actk}`;
   }
@@ -70,11 +110,8 @@ export default async function request<T>(url: string, options: requestOptions) {
   if (saveCookies) {
     const cookieList = res.headers.getSetCookie();
     cookieList?.forEach((cookie) => {
-      const cookieParsed = cookie
-        .replace("=", ",")
-        .replace(";", ",")
-        .split(",");
-      cookiesManager.set(cookieParsed[0], cookieParsed[1]);
+      const { name, value, options } = parsearSetCookie(cookie);
+      cookiesManager.set(name, value, options);
     });
   }
   if (deleteCookies) {

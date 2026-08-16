@@ -3,9 +3,12 @@ import { notFound } from "next/navigation";
 import AlertaBadge from "@/components/ui/AlertaBadge";
 import EstadoError from "@/components/ui/EstadoError";
 import ScoreMeter from "@/components/ui/ScoreMeter";
+import ChatContrato from "@/components/contratos/ChatContrato";
 import { formatFecha, formatMoneda, formatNumero } from "@/lib/format";
 import { getFichaContrato } from "@/server/contratos/getFichaContrato";
 import type { ContratoDetalle } from "@/types/contrato";
+
+export const maxDuration = 60;
 
 export default async function FichaContratoPage({
   params,
@@ -121,16 +124,14 @@ export default async function FichaContratoPage({
             ))}
           </ul>
         )}
-
-        {contrato.analisis?.explicacionIa ? (
-          <div className="mt-4 rounded-lg border border-accent-500/25 bg-accent-100 p-3 text-sm">
-            <p className="flex items-center gap-1.5 font-medium text-foreground">
-              <span aria-hidden>🤖</span> Explicación
-            </p>
-            <p className="mt-1 text-foreground">{contrato.analisis.explicacionIa}</p>
-          </div>
-        ) : null}
       </section>
+
+      {contrato.analisis ? (
+        <ChatContrato
+          contratoId={contrato.id}
+          explicacionInicial={contrato.analisis.explicacionIa}
+        />
+      ) : null}
     </div>
   );
 }

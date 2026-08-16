@@ -17,7 +17,7 @@ Plan por fases para implementar el backend de SECOP Guardian (ver [`SECOP_Guardi
 
 - Instalar dependencias: `@nestjs/typeorm typeorm pg @nestjs/config @nestjs/axios axios class-validator class-transformer`
 - `docker-compose.yml` con Postgres para desarrollo local
-- `ConfigModule` global + `.env` con `DB_HOST/PORT/USER/PASSWORD/NAME`, `SECOP_API_BASE_URL`, `ANTHROPIC_API_KEY`
+- `ConfigModule` global + `.env` con `DB_HOST/PORT/USER/PASSWORD/NAME`, `SECOP_API_BASE_URL`, `GCAIS_API_KEY`, `GCAIS_API_BASE_URL`
 - `TypeOrmModule.forRootAsync` en `AppModule` usando `ConfigService`
 - `ValidationPipe` global + `enableCors()` para el frontend (`localhost:8000`)
 - Carpetas por dominio: `src/contracts`, `src/secop`, `src/anomaly`, `src/ai`, `src/dashboard`, `src/common`
@@ -70,26 +70,44 @@ Plan por fases para implementar el backend de SECOP Guardian (ver [`SECOP_Guardi
 - `GET /entities/search?q=` y `GET /contractors/search?q=` → autocompletar para el buscador
 - DTOs con `class-validator`, paginación estándar, exception filters (404, 502 si falla SECOP)
 
-## Fase 5 — Explicación con IA
+## Fase 5 — Explicación con IA (vía GCAIS) ✅
 
-- `AiModule` / `AiExplanationService` usando la API de Anthropic
-- Prompt template que respeta el lenguaje recomendado (`SECOP_Guardian.md` sección 13: "señal de alerta", "comportamiento atípico" — nunca "corrupción")
-- `POST /contracts/:id/explain` (o incluido en la ficha), cachea el resultado en `AnalisisContrato.explicacion_ia` para no regenerar en cada request
-- Fallback: si la IA falla, mostrar señales sin narrativa
+> Cambio de diseño: la explicación en lenguaje natural ya no llama directo a la API de Anthropic. Se delega a **GCAIS** (ver [`gcais.md`](./gcais.md)), un servicio propio que gestiona chats con IA sobre `/api/chats`. `ANTHROPIC_API_KEY` queda obsoleta para este flujo; se usan `GCAIS_API_KEY`, `GCAIS_API_BASE_URL`, `GCAIS_SERVICE_ID` y `GCAIS_CLIENT` (en `backend/.env.example`).
+>
+> **Comportamiento real de GCAIS confirmado contra el servicio en vivo** (no documentado en `gcais.md`): `POST /api/chats` genera la respuesta del asistente de forma asíncrona pero rápida (~2s), consultable vía `GET /api/chats/reference/:reference` (se sondea con reintentos). Además, ese endpoint **reescribe la `reference` enviada** añadiéndole un sufijo (`-undefined` en este entorno) — por eso el cliente usa la `reference` que devuelve la respuesta del POST para el sondeo, y `chat_name` (que sí se preserva tal cual) como clave de reintento/idempotencia. Ya existe un servicio registrado en GCAIS para este proyecto: `service_id=f30efaa5-27ba-45b1-9f70-c3e06387b321`, `client=sg`, modelo `gpt-4o-mini`.
 
-## Fase 6 — Transversales
+- `AiModule` / `GcaisService`: cliente HTTP (`HttpService`/axios) hacia `GCAIS_API_BASE_URL`, autenticado con `GCAIS_API_KEY` (Bearer)
+- Validar `GCAIS_API_KEY` y `GCAIS_API_BASE_URL` al arrancar la app (falla rápido si faltan), tal como indica `gcais.md`
+- Construcción del mensaje al crear una explicación (`POST /api/chats` en GCAIS):
+  - `reference` obligatoria con formato `gcais-<ip_cliente>-<id_contrato>` — el id del contrato **siempre** va como contexto
+  - `message`: prompt armado a partir de `AnalisisContrato.señales` + datos del contrato, respetando el lenguaje recomendado (`SECOP_Guardian.md` sección 13: "señal de alerta", "comportamiento atípico" — nunca "corrupción")
+  - `role`, `sender_name`, `chat_name`, `service_id`/`service_name` según el contrato de `gcais.md` (definir el `service_id` fijo de SECOP Guardian registrado en GCAIS)
+- Antes de crear un chat nuevo, consultar `GET /api/chats/reference/:reference` en GCAIS para reutilizar la conversación existente de ese contrato
+- Endpoint propio `POST /contracts/:id/explain` (o incluido en la ficha) que internamente habla con GCAIS; cachea el texto resultante en `AnalisisContrato.explicacion_ia` para no volver a llamar a GCAIS en cada request
+- Fallback: si GCAIS falla o no responde, mostrar señales sin narrativa (nunca bloquear la ficha del contrato)
+
+## Fase 6 — Autenticación ✅
+
+> Protección simple por API key compartida (no es auth de usuario final, es un gate a nivel de servicio) — pensado para que el frontend y cualquier otro consumidor autorizado incluyan el header, no para login de ciudadanos.
+
+- `AuthModule` / `ApiKeyGuard`: valida que el header `Authorization: Bearer <token>` traiga exactamente el valor de la variable de entorno `API_KEY`, con comparación en tiempo constante (`crypto.timingSafeEqual`)
+- Guard registrado globalmente vía `APP_GUARD`, protege **todas** las rutas de la aplicación sin excepciones
+- Valida `API_KEY` al arrancar la app (falla rápido si falta), mismo patrón que `GcaisService`
+- Consecuencia pendiente: `frontend/utils/request.ts` todavía no envía este header, así que las llamadas del frontend al backend fallarán con 401 hasta que se actualice para incluirlo
+
+## Fase 7 — Transversales
 
 - Logging en ingesta y scoring
 - `GET /health`
 - Seed script para precargar 1-2 entidades demo (evita depender de la red durante el pitch en vivo)
 
-## Fase 7 — Testing
+## Fase 8 — Testing
 
 - Unit tests de `AnomalyScoringService` (precio normal/anómalo, adiciones, concentración)
 - Unit tests del mapper SECOP con fixtures de JSON crudo
 - e2e de `/contracts/search` y `/dashboard`
 
-## Fase 8 — Preparación de demo
+## Fase 9 — Preparación de demo
 
 - Seed con la entidad elegida para el pitch, verificando que aparezcan los 3 niveles de alerta
 - Confirmar shape de respuestas con quien haga el frontend
