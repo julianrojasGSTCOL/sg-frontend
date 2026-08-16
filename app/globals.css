@@ -76,36 +76,9 @@
   --text-display: 2.25rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-
-    --background: #0a1526;
-    --foreground: #f0f5fb;
-    --surface: #12203a;
-    --muted: #a9bcd6;
-    --border: #24385c;
-
-    /* gov.co no publica modo oscuro; estos son los mismos matices que ellos
-       usan como variante clara/hover de su propia paleta (#5B8BFF, etc.),
-       reutilizados aquí porque ya están pensados para resaltar sobre azul
-       oscuro. */
-    --brand-900: #cfe0ff;
-    --brand-700: #5b8bff;
-    --brand-500: #4a7eff;
-
-    /* Medido aparte (no la rampa de arriba): blanco sobre esto da 8.99:1 en
-       reposo y 6.40:1 en hover, y ambos se distinguen del fondo oscuro. */
-    --brand-solid: #1e429f;
-    --brand-solid-hover: #2c56c9;
-
-    --accent-500: #a78bfa;
-
-    --alert-low: #069169;
-    --alert-medium: #fad118;
-    --alert-high: #d31f3f;
-  }
-}
+/* Sin bloque @media (prefers-color-scheme: dark) a propósito: la app fuerza
+   siempre el tema claro (ver --root: color-scheme: light arriba),
+   independientemente de la preferencia del sistema operativo del usuario. */
 
 body {
   background: var(--background);
