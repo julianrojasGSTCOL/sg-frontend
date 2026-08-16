@@ -1,25 +1,49 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fafafa;
-  --foreground: #171717;
+  color-scheme: light;
+
+  /* Superficies y tinta — fondo blanco, tarjetas en blanco puro. */
+  --background: #ffffff;
+  --foreground: #0f2440;
   --surface: #ffffff;
-  --muted: #52606d;
-  --border: #e2e8f0;
+  --muted: #4f6486;
+  --border: #cfe0fa;
 
-  --brand-900: #0b2545;
-  --brand-700: #134074;
-  --brand-500: #1f6fb2;
-  --brand-100: #e6f0fa;
+  /* Marca — azul institucional vivo (familia gov.co #3366CC/#004884, pero
+     con el 500 más claro/saturado para que domine como color de fondo del
+     sidebar, íconos y botones). */
+  --brand-900: #0b3d91;
+  --brand-700: #1a56d6;
+  --brand-500: #2f7ff5;
+  --brand-100: color-mix(in oklab, var(--brand-500) 12%, var(--surface));
 
-  --accent-500: #0ea5a5;
+  /* Relleno sólido para botones/píldoras activas con texto blanco encima.
+     Es un token aparte de brand-900/700/500 a propósito: esos tres cambian
+     de sentido en modo oscuro (900 pasa a ser el más CLARO, para texto de
+     énfasis sobre fondo oscuro — ver abajo), así que no sirven para "relleno
+     que siempre lleva texto blanco" en ambos temas. brand-solid sí garantiza
+     ≥4.5:1 con blanco en los dos modos (medido, no a ojo). En claro
+     coincide con brand-700/900; en oscuro es un tono propio porque
+     brand-700-oscuro (#5B8BFF) con texto blanco da solo 3.19:1. */
+  --brand-solid: var(--brand-700);
+  --brand-solid-hover: var(--brand-900);
 
-  --alert-low: #16a34a;
-  --alert-low-bg: #dcfce7;
-  --alert-medium: #ca8a04;
-  --alert-medium-bg: #fef9c3;
-  --alert-high: #dc2626;
-  --alert-high-bg: #fee2e2;
+  /* Acento — violeta, reservado para contenido generado por IA (gov.co no
+     define un tono para esto; se mantiene el nuestro, distinto de las
+     alertas para que nunca se confundan). */
+  --accent-500: #6d28d9;
+  --accent-100: color-mix(in oklab, var(--accent-500) 12%, var(--surface));
+
+  /* Niveles de alerta — también tomados de los tokens de estado de gov.co
+     (éxito/advertencia/error). El fondo suave (-bg) se recalcula contra
+     --surface, así que no hace falta duplicarlo por tema. */
+  --alert-low: #068460;
+  --alert-low-bg: color-mix(in oklab, var(--alert-low) 16%, var(--surface));
+  --alert-medium: #ffab00;
+  --alert-medium-bg: color-mix(in oklab, var(--alert-medium) 20%, var(--surface));
+  --alert-high: #a80521;
+  --alert-high-bg: color-mix(in oklab, var(--alert-high) 14%, var(--surface));
 }
 
 @theme inline {
@@ -33,8 +57,11 @@
   --color-brand-700: var(--brand-700);
   --color-brand-500: var(--brand-500);
   --color-brand-100: var(--brand-100);
+  --color-brand-solid: var(--brand-solid);
+  --color-brand-solid-hover: var(--brand-solid-hover);
 
   --color-accent-500: var(--accent-500);
+  --color-accent-100: var(--accent-100);
 
   --color-alert-low: var(--alert-low);
   --color-alert-low-bg: var(--alert-low-bg);
@@ -51,24 +78,32 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --surface: #151515;
-    --muted: #9aa5b1;
-    --border: #2a2a2a;
+    color-scheme: dark;
 
-    --brand-700: #3a6ea5;
-    --brand-500: #4c8dc7;
-    --brand-100: #132539;
+    --background: #0a1526;
+    --foreground: #f0f5fb;
+    --surface: #12203a;
+    --muted: #a9bcd6;
+    --border: #24385c;
 
-    --accent-500: #2dd4bf;
+    /* gov.co no publica modo oscuro; estos son los mismos matices que ellos
+       usan como variante clara/hover de su propia paleta (#5B8BFF, etc.),
+       reutilizados aquí porque ya están pensados para resaltar sobre azul
+       oscuro. */
+    --brand-900: #cfe0ff;
+    --brand-700: #5b8bff;
+    --brand-500: #4a7eff;
 
-    --alert-low: #4ade80;
-    --alert-low-bg: #0f2a1a;
-    --alert-medium: #facc15;
-    --alert-medium-bg: #2a230c;
-    --alert-high: #f87171;
-    --alert-high-bg: #2a1414;
+    /* Medido aparte (no la rampa de arriba): blanco sobre esto da 8.99:1 en
+       reposo y 6.40:1 en hover, y ambos se distinguen del fondo oscuro. */
+    --brand-solid: #1e429f;
+    --brand-solid-hover: #2c56c9;
+
+    --accent-500: #a78bfa;
+
+    --alert-low: #069169;
+    --alert-medium: #fad118;
+    --alert-high: #d31f3f;
   }
 }
 
@@ -76,4 +111,41 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Receta real de "tarjeta" de gov.co (.tarjeta-govco / .icono-tarjeta-govco
+   en cdn.www.gov.co/layout/v4/all.css): de base solo un borde azul clarito,
+   sin sombra — la "profundidad" aparece en hover/focus como un resplandor de
+   color debajo de la tarjeta (box-shadow plano, sin blur) en vez de una
+   sombra gris genérica. Se usa en vez de shadow-sm + border-border en toda
+   tarjeta/panel de la app. */
+.tarjeta {
+  background: var(--surface);
+  border: 1px solid var(--brand-100);
+  border-radius: 0.625rem;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.tarjeta:hover,
+.tarjeta:focus-within {
+  border-color: var(--brand-500);
+  box-shadow: 0 0.25rem 0 0 color-mix(in oklab, var(--brand-500) 20%, transparent);
+}
+
+/* Mismo resplandor, para inputs (calca .entradas-de-texto-govco input:focus). */
+.entrada {
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  background: var(--surface);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.entrada:focus {
+  outline: none;
+  border-color: var(--brand-500);
+  box-shadow: 0 0.25rem 0 0 color-mix(in oklab, var(--brand-500) 20%, transparent);
 }
